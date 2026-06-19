@@ -1,0 +1,77 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Station Monitor — production stack
+#
+#   docker compose --env-file .env up -d --build
+#
+# Two services: FastAPI backend (SQLite on a named volume) and an nginx-served
+# React frontend. See README.md for full deployment steps.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  backend:
+    build: ./backend
+    image: station-monitor-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: production
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      AGENT_API_KEY: ${AGENT_API_KEY:-}
+      MOCK_MONITORING: ${MOCK_MONITORING:-false}
+      # SQLite database lives on the named volume below (persists across restarts).
+      DATABASE_URL: ${DATABASE_URL:-sqlite+aiosqlite:////data/station_monitor.db}
+    volumes:
+      - monitor-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Must be the externally reachable backend URL (baked into the bundle at build time).
+        VITE_API_BASE: ${VITE_API_BASE:-http://localhost:8000}
+        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8000/ws}
+    image: station-monitor-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # OPTIONAL — PostgreSQL drop-in.
+  # SQLite is the right choice for a single backend instance monitoring up to
+  # ~100 servers. If you scale past that or run multiple backend replicas,
+  # switch to Postgres:
+  #   1. Uncomment this service.
+  #   2. Add `asyncpg` to backend/requirements.txt.
+  #   3. Set in .env:
+  #        DATABASE_URL=postgresql+asyncpg://monitor:${POSTGRES_PASSWORD}@db:5432/station_monitor
+  #   4. Verify migrations.py / any SQLite-specific SQL runs on Postgres.
+  #
+  # db:
+  #   image: postgres:16-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: monitor
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+  #     POSTGRES_DB: station_monitor
+  #   volumes:
+  #     - pg-data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U monitor"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  monitor-data:
+  # pg-data:

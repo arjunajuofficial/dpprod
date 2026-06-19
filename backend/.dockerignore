@@ -1,0 +1,30 @@
+# Python runtime / build clutter
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+tests/
+pytest.ini
+requirements-dev.txt
+
+# Local data & runtime files — must never be baked into the image
+*.db
+*.sqlite
+*.sqlite3
+*.log
+_sync_test.txt
+
+# Secrets — provided at runtime via docker-compose env, never copied in
+.env
+.env.*
+!.env.example
+
+# Stray tooling output
+worker/graphify-out/
+graphify-out/
+
+# Editor / OS
+.DS_Store
+*.swp
