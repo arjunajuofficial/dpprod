@@ -36,9 +36,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # Must be the externally reachable backend URL (baked into the bundle at build time).
-        VITE_API_BASE: ${VITE_API_BASE:-http://localhost:8000}
-        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8000/ws}
+        # Empty = use relative URLs; nginx proxies /api/ and /ws to the backend.
+        VITE_API_BASE: ""
+        VITE_WS_URL: ""
     image: station-monitor-frontend
     restart: unless-stopped
     ports:

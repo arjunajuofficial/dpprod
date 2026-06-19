@@ -11,7 +11,8 @@ import { MetricsPage } from './pages/MetricsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { CallSearchPage } from './pages/CallSearchPage';
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8000/ws';
+const WS_URL = import.meta.env.VITE_WS_URL ||
+  `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
 
 export default function App() {
   const { token, user, clearAuth, setServers, setAlerts, setWsConnected, setLoading, page } = useStore();
